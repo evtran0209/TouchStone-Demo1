@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fraud Detection Widget</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #ff4d4d;
+      --secondary-color: #2c3e50;
+      --background-color: #f8f9fa;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--background-color);
+      color: var(--secondary-color);
+      line-height: 1.5;
+    }
+
+    /* Risk Meter Styles */
+    .risk-meter {
+      width: 200px;
+      height: 200px;
+      position: relative;
+      margin: 20px auto;
+    }
+    
+    .meter-circle {
+      fill: none;
+      stroke-width: 10;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    
+    .meter-background {
+      stroke: #e6e6e6;
+    }
+    
+    .meter-value {
+      stroke: var(--primary-color);
+      transition: stroke-dasharray 0.5s ease-in-out;
+    }
+
+    .score-text {
+      font-weight: bold;
+      fill: var(--secondary-color);
+    }
+
+    /* Risk Summary Styles */
+    .risk-summary {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .risk-section {
+      background: var(--background-color);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Animation Styles */
+    .loading-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 8px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    .bullet-point {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease-out;
+      padding: 0.5rem;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.03);
+      margin-bottom: 0.5rem;
+    }
+
+    .bullet-point.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.5; }
+    }
+
+    /* Button Styles */
+    .deny-button {
+      background-color: var(--danger-color);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      width: 100%;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+
+    .deny-button:hover {
+      background-color: #c82333;
+      transform: translateY(-1px);
+    }
+
+    .deny-button:active {
+      transform: translateY(0);
+    }
+
+    /* Risk Level Indicators */
+    .risk-level-low { color: var(--success-color); }
+    .risk-level-medium { color: var(--warning-color); }
+    .risk-level-high { color: var(--danger-color); }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-4">
+    <!-- Risk Meter -->
+    <div class="risk-meter">
+      <svg viewBox="0 0 200 200">
+        <circle class="meter-circle meter-background" cx="100" cy="100" r="90"/>
+        <circle class="meter-circle meter-value" cx="100" cy="100" r="90"/>
+        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" class="score-text">
+          <tspan x="100" y="90" class="text-3xl font-bold score-value">0%</tspan>
+          <tspan x="100" y="120" class="text-xl">Severe Risk</tspan>
+        </text>
+      </svg>
+    </div>
+
+    <!-- Risk Summary -->
+    <div class="risk-summary">
+      <h3 class="text-xl font-bold mb-4">Risk Summary</h3>
+      
+      <!-- Identity Section -->
+      <div id="identity-section" class="risk-section">
+        <h4 class="font-semibold mb-2">Identity</h4>
+        <ul class="space-y-2"></ul>
+      </div>
+      
+      <!-- Conversation Behavior Section -->
+      <div id="conversation-section" class="risk-section">
+        <h4 class="font-semibold mb-2">Conversation Behavior</h4>
+        <ul class="space-y-2"></ul>
+      </div>
+      
+      <!-- Proof of Delivery Section -->
+      <div id="delivery-section" class="risk-section">
+        <h4 class="font-semibold mb-2">Proof of Delivery</h4>
+        <ul class="space-y-2"></ul>
+      </div>
+    </div>
+
+    <!-- Deny Button -->
+    <button id="denyButton" class="deny-button hidden">
+      Deny Claim
+    </button>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const client = ZAFClient.init();
+      
+      // State management
+      const state = {
+        currentScore: 0,
+        scoreThresholds: [23, 36, 54, 68, 85],
+        currentThresholdIndex: 0,
+        addedBulletPoints: new Set()
+      };
+
+      // Trigger patterns for risk detection
+      const conversationTriggers = {
+        identityTriggers: {
+          "don't have it handy": [
+            {
+              section: 'identity',
+              text: 'Unable to Provide Order Information',
+              color: 'risk-level-medium'
+            }
+          ],
+          "can't you find it": [
+            {
+              section: 'identity',
+              text: 'Avoiding Order Verification',
+              color: 'risk-level-high'
+            }
+          ]
+        },
+        behaviorTriggers: {
+          "rush": [
+            {
+              section: 'conversation',
+              text: 'Urgency Detected: High',
+              color: 'risk-level-high'
+            }
+          ],
+          "chargeback": [
+            {
+              section: 'conversation',
+              text: 'Threatening Language Detected: High',
+              color: 'risk-level-high'
+            },
+            {
+              section: 'conversation',
+              text: 'Excessive Knowledge of Chargeback Knowledge',
+              color: 'risk-level-medium'
+            }
+          ],
+          "social media": [
+            {
+              section: 'conversation',
+              text: 'Threatening Language Detected: High',
+              color: 'risk-level-high'
+            }
+          ]
+        },
+        deliveryTriggers: {
+          "impossible": [
+            {
+              section: 'delivery',
+              text: 'Package was delivered. Proven by Photo Proof of Delivery',
+              color: 'risk-level-medium'
+            }
+          ],
+          "nothing came": [
+            {
+              section: 'delivery',
+              text: 'Did Not Arrive Claims Not Supported by Tracking Evidence',
+              color: 'risk-level-high'
+            }
+          ]
+        }
+      };
+
+      // Update risk meter visualization
+      function updateRiskMeter(score) {
+        const circumference = 2 * Math.PI * 90;
+        const strokeDasharray = (score / 100) * circumference;
+        const meterValue = document.querySelector('.meter-value');
+        const scoreText = document.querySelector('.score-value');
+        
+        meterValue.style.strokeDasharray = `${strokeDasharray} ${circumference}`;
+        meterValue.style.strokeDashoffset = circumference;
+        scoreText.textContent = `${score}%`;
+        
+        if (score >= 85) {
+          document.getElementById('denyButton').classList.remove('hidden');
+        }
+      }
+
+      // Add bullet point with loading animation
+      async function addBulletPoint(section, text, color) {
+        const bulletPointId = `${section}-${text}`;
+        
+        if (state.addedBulletPoints.has(bulletPointId)) {
+          return;
+        }
+        
+        const ul = document.querySelector(`#${section}-section ul`);
+        const li = document.createElement('li');
+        li.className = `bullet-point flex items-center space-x-2 ${color}`;
+        
+        // Create loading animation
+        const loading = document.createElement('div');
+        loading.className = 'loading-dot';
+        li.appendChild(loading);
+        
+        const span = document.createElement('span');
+        span.textContent = text;
+        li.appendChild(span);
+        
+        ul.appendChild(li);
+        
+        // Simulate analysis delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        loading.remove();
+        li.classList.add('show');
+        
+        state.addedBulletPoints.add(bulletPointId);
+      }
+
+      // Check message for trigger phrases
+      function checkTriggers(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        Object.entries(conversationTriggers).forEach(([_, categoryTriggers]) => {
+          Object.entries(categoryTriggers).forEach(([trigger, actions]) => {
+            if (lowerMessage.includes(trigger)) {
+              actions.forEach(action => {
+                addBulletPoint(action.section, action.text, action.color);
+              });
+            }
+          });
+        });
+      }
+
+      // Handle new message in conversation
+      function handleNewMessage(message) {
+        checkTriggers(message);
+        
+        if (state.currentThresholdIndex < state.scoreThresholds.length) {
+          state.currentScore = state.scoreThresholds[state.currentThresholdIndex];
+          updateRiskMeter(state.currentScore);
+          state.currentThresholdIndex++;
+        }
+      }
+
+      // Initialize event listeners
+      client.on('ticket.conversation.changed', async function() {
+        const data = await client.get('ticket.conversation.comment');
+        const latestComment = data['ticket.conversation.comment'];
+        
+        if (latestComment && latestComment.text) {
+          handleNewMessage(latestComment.text);
+        }
+      });
+
+      // Handle deny button click
+      document.getElementById('denyButton').addEventListener('click', async function() {
+        try {
+          await client.invoke('ticket.comment.appendText', {
+            text: 'The Customer Support Representative has ended the chat due to detection of fraudulent behavior in this conversation.'
+          });
+          
+          await client.invoke('ticket.update', {
+            status: 'closed'
+          });
+        } catch (error) {
+          console.error('Error handling deny click:', error);
+        }
+      });
+
+      // Initialize risk meter
+      updateRiskMeter(0);
+    })();
+  </script>
+</body>
+</html>
