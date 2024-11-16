@@ -14,6 +14,10 @@
   },
   "version": "1.0.0",
   "frameworkVersion": "2.0",
+  "domainWhitelist": [
+    "cdn.jsdelivr.net",
+    "static.zdassets.com"
+  ],
   "parameters": [
     {
       "name": "debugMode",

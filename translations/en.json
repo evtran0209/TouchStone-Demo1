@@ -1,6 +1,8 @@
 {
-    "app": {
-      "name": "TouchStone Demo V1",
-      "description": "Version 1 Demo for TouchStone AI on Zendesk."
-    }
+  "app": {
+    "name": "TouchStone Demo V1",
+    "short_description": "Fraud detection tool for customer support representatives",
+    "long_description": "A tool to detect fraudulent behavior in customer support conversations",
+    "installation_instructions": "Upload the app as a private app in Zendesk"
   }
+}

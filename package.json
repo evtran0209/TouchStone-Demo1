@@ -1,12 +1,20 @@
 {
   "name": "touchstone-demo1",
   "version": "1.0.0",
+  "description": "Version #1 of TouchStone Demo for Zendesk Integration",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "zat server",
+    "build": "zat package",
+    "clean": "rm -rf dist/*.zip",
+    "validate": "zat validate"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Your Name",
   "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "zendesk_app_framework_sdk": "^2.0.0"
+  },
+  "devDependencies": {
+    "zendesk_apps_tools": "^3.8.0"
+  }
 }
