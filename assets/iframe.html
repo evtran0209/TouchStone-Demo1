@@ -1,381 +1,269 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline' http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:">
-  <meta name="referrer" content="no-referrer">
-  <title>Fraud Detection Widget</title>
+  <meta charset="utf-8">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
   <style>
     :root {
-      --primary-color: #ff4d4d;
-      --background-color: #f8f9fa;
-      --text-color: #2c3e50;
+      --primary-color: #2952CC;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --success-color: #28a745;
     }
 
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f7f9;
+      color: #333;
+    }
+
+    .app-container {
+      max-width: 350px;
+      margin: 0 auto;
+    }
+
+    /* Risk Meter Styles */
     .risk-meter {
+      position: relative;
       width: 200px;
       height: 200px;
-      position: relative;
-      margin: 20px auto;
+      margin: 0 auto 20px;
     }
-    
+
+    .meter {
+      width: 100%;
+      height: 100%;
+    }
+
     .meter-circle {
       fill: none;
       stroke-width: 10;
       transform: rotate(-90deg);
-      transform-origin: center;
-    }
-    
-    .meter-background {
-      stroke: #e6e6e6;
-    }
-    
-    .meter-value {
-      stroke: var(--primary-color);
-      transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.5s ease-in-out;
     }
 
-    .risk-section {
+    .meter-background {
+      stroke: #e9ecef;
+    }
+
+    .meter-value {
+      stroke: var(--danger-color);
+      stroke-linecap: round;
+      stroke-dasharray: 565.48;
+      stroke-dashoffset: 565.48;
+      transition: stroke-dashoffset 1.5s ease-in-out;
+    }
+
+    .score-value, .risk-text {
+      fill: #333;
+      font-weight: bold;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    /* Risk Section Styles */
+    .risk-sections {
       background: white;
       border-radius: 8px;
-      padding: 15px;
       margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    .loading-indicator {
-      display: inline-flex;
+    .section {
+      padding: 15px;
+      border-bottom: 1px solid #eaeaea;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section h3 {
+      color: #333;
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 8px;
     }
 
-    .loading-dot {
-      width: 8px;
-      height: 8px;
-      background-color: currentColor;
+    .section h3::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      animation: pulse 1s infinite;
+      background-color: var(--primary-color);
     }
 
+    /* Bullet Point Styles */
     .bullet-point {
       opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 8px;
-      border-radius: 6px;
-      margin-bottom: 8px;
+      transform: translateX(-20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .bullet-point.loading::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: spin 1.5s linear infinite;
     }
 
     .bullet-point.show {
       opacity: 1;
-      transform: translateY(0);
-      background: rgba(0,0,0,0.03);
+      transform: translateX(0);
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(0.8); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 1; }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
-    #debugInfo {
-      background: #f0f0f0;
-      padding: 10px;
-      margin-bottom: 10px;
+    .text-yellow-500 { color: #EAB308; }
+    .text-red-500 { color: #EF4444; }
+
+    /* Risk Level Indicators */
+    .risk-level {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+
+    .risk-level.high {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: var(--danger-color);
+    }
+
+    .risk-level.medium {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: var(--warning-color);
+    }
+
+    .risk-level.low {
+      background-color: rgba(40, 167, 69, 0.1);
+      color: var(--success-color);
+    }
+
+    /* Deny Button */
+    .deny-button {
+      display: none;
+      width: 100%;
+      padding: 12px;
+      background-color: var(--danger-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .deny-button:hover {
+      background-color: #c82333;
+    }
+
+    /* Debug Panel Styles */
+    #debugPanel {
+      margin-top: 20px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
       font-family: monospace;
       font-size: 12px;
     }
+
+    .debug-log {
+      margin: 5px 0;
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
   </style>
 </head>
-<body class="bg-gray-50">
-  <!-- Debug Information -->
-  <div id="debugInfo">
-    <div>Widget Status: <span id="widgetStatus">Initializing...</span></div>
-    <div>Loading Time: <span id="loadTime"></span></div>
-    <div>ZAF Client: <span id="zafStatus">Not Connected</span></div>
-  </div>
+<body>
+  <div id="app" class="app-container">
+    <!-- Risk Widget -->
+    <div class="risk-widget">
+      <!-- Risk Meter -->
+      <div class="risk-meter">
+        <svg class="meter" viewBox="0 0 200 200">
+          <circle class="meter-circle meter-background" cx="100" cy="100" r="90"/>
+          <circle class="meter-circle meter-value" cx="100" cy="100" r="90"/>
+          <text class="score-value" x="100" y="90" style="font-size: 24px;">0%</text>
+          <text class="risk-text" x="100" y="120" style="font-size: 16px;">Low Risk</text>
+        </svg>
+      </div>
 
-  <div id="app" class="p-4">
-    <!-- Risk Meter -->
-    <div class="risk-meter">
-      <svg viewBox="0 0 200 200">
-        <circle class="meter-circle meter-background" cx="100" cy="100" r="90"/>
-        <circle class="meter-circle meter-value" cx="100" cy="100" r="90"/>
-        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" class="score-text">
-          <tspan x="100" y="90" class="text-3xl font-bold score-value">0%</tspan>
-          <tspan x="100" y="120" class="text-xl" fill="#dc3545">Severe Risk</tspan>
-        </text>
-      </svg>
+      <!-- Risk Summary Sections -->
+      <div class="risk-sections">
+        <div id="identity-section" class="section">
+          <h3>Identity/KYC</h3>
+          <ul class="bullet-list"></ul>
+        </div>
+        <div id="conversation-section" class="section">
+          <h3>Conversation Behavior</h3>
+          <ul class="bullet-list"></ul>
+        </div>
+        <div id="delivery-section" class="section">
+          <h3>Proof of Delivery</h3>
+          <ul class="bullet-list"></ul>
+        </div>
+      </div>
+
+      <!-- Deny Button -->
+      <button id="denyButton" class="deny-button">
+        Deny Claim
+      </button>
     </div>
 
-    <!-- Risk Summary -->
-    <div class="risk-summary space-y-4">
-      <h3 class="text-xl font-bold px-2">Risk Summary</h3>
-      
-      <!-- Identity Section -->
-      <div id="identity-section" class="risk-section">
-        <h4 class="font-semibold mb-3 text-gray-700">Identity/KYC</h4>
-        <ul class="space-y-2"></ul>
+    <!-- Debug Panel -->
+    <div id="debugPanel">
+      <div class="debug-header">
+        <strong>Debug Information</strong>
       </div>
-      
-      <!-- Conversation Section -->
-      <div id="conversation-section" class="risk-section">
-        <h4 class="font-semibold mb-3 text-gray-700">Conversation Behavior</h4>
-        <ul class="space-y-2"></ul>
+      <div class="debug-content">
+        <div>
+          <strong>Status:</strong> <span id="widgetStatus">Initializing...</span>
+        </div>
+        <div>
+          <strong>Current Score:</strong> <span id="currentScore">0%</span>
+        </div>
+        <div>
+          <strong>Events Monitored:</strong> <span id="eventsMonitored">0</span>
+        </div>
       </div>
-      
-      <!-- Delivery Section -->
-      <div id="delivery-section" class="risk-section">
-        <h4 class="font-semibold mb-3 text-gray-700">Proof of Delivery</h4>
-        <ul class="space-y-2"></ul>
-      </div>
+      <div id="debugLog" class="mt-2"></div>
     </div>
-
-    <!-- Control Buttons -->
-    <button id="denyButton" class="hidden w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 mt-4">
-      Deny Claim
-    </button>
-    
-    <button id="resetButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mt-4">
-      Reset Conversation
-    </button>
   </div>
 
+  <!-- Scripts -->
   <script>
-    (function() {
-      'use strict';
-
-      // Debug logging setup
-      const startTime = performance.now();
-      const debugInfo = {
-        updateStatus: function(status) {
-          document.getElementById('widgetStatus').textContent = status;
-          console.log('Widget Status:', status);
-        },
-        updateZAFStatus: function(status) {
-          document.getElementById('zafStatus').textContent = status;
-          console.log('ZAF Status:', status);
-        },
-        logError: function(error) {
-          console.error('Widget Error:', error);
-          this.updateStatus(`Error: ${error.message}`);
-        }
-      };
-
-      // Initial debug logging
-      debugInfo.updateStatus('Loading...');
-      document.getElementById('loadTime').textContent = `${Math.round(performance.now() - startTime)}ms`;
-
-      // Initialize ZAF client with error handling
-      let client;
-      try {
-        client = ZAFClient.init();
-        debugInfo.updateZAFStatus('Connected');
-        console.log('ZAF Client initialized successfully');
-      } catch (error) {
-        debugInfo.logError(error);
-        return;
+    // Enable CORS for ZAF client
+    window.addEventListener('error', function(e) {
+      if (e.message.includes('cross-origin')) {
+        console.warn('Cross-origin error handled:', e.message);
+        return true;
       }
-
-      // State management
-      const state = {
-        currentScore: 0,
-        scoreThresholds: [23, 36, 54, 68, 85],
-        currentThresholdIndex: 0,
-        addedBulletPoints: new Set()
-      };
-
-      // Conversation triggers
-      const triggers = {
-        identity: {
-          "don't have it handy": {
-            text: "Unable to Provide Order Information",
-            color: "text-yellow-500",
-            score: 23
-          },
-          "can't you find it": {
-            text: "Avoiding Order Verification",
-            color: "text-red-500",
-            score: 36
-          }
-        },
-        conversation: {
-          "rush": {
-            text: "Urgency Detected: High",
-            color: "text-red-500",
-            score: 36
-          },
-          "chargeback": {
-            text: "Threatening Language: Chargeback",
-            color: "text-red-500",
-            score: 68
-          },
-          "fair credit billing act": {
-            text: "Excessive Chargeback Knowledge",
-            color: "text-red-500",
-            score: 85
-          }
-        },
-        delivery: {
-          "impossible": {
-            text: "Delivery Denial Despite Evidence",
-            color: "text-red-500",
-            score: 54
-          },
-          "nothing came": {
-            text: "Claims Contradict Tracking",
-            color: "text-yellow-500",
-            score: 36
-          }
-        }
-      };
-
-      function updateRiskMeter(score) {
-        console.log(`Updating risk meter to ${score}%`);
-        const circumference = 2 * Math.PI * 90;
-        const strokeDasharray = (score / 100) * circumference;
-        const meterValue = document.querySelector('.meter-value');
-        const scoreText = document.querySelector('.score-value');
-        
-        try {
-          meterValue.style.strokeDasharray = `${strokeDasharray} ${circumference}`;
-          scoreText.textContent = `${score}%`;
-          
-          if (score >= 85) {
-            document.getElementById('denyButton').classList.remove('hidden');
-          }
-          debugInfo.updateStatus(`Risk Score Updated: ${score}%`);
-        } catch (error) {
-          debugInfo.logError(error);
-        }
-      }
-
-      async function addBulletPoint(section, text, color) {
-        console.log(`Adding bullet point: ${text} to ${section}`);
-        const bulletPointId = `${section}-${text}`;
-        
-        if (state.addedBulletPoints.has(bulletPointId)) {
-          console.log('Bullet point already exists, skipping');
-          return;
-        }
-        
-        try {
-          const ul = document.querySelector(`#${section}-section ul`);
-          const li = document.createElement('li');
-          li.className = `bullet-point flex items-center space-x-2 ${color}`;
-          
-          const loading = document.createElement('div');
-          loading.className = 'loading-indicator';
-          for (let i = 0; i < 3; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'loading-dot';
-            loading.appendChild(dot);
-          }
-          li.appendChild(loading);
-          
-          const span = document.createElement('span');
-          span.textContent = text;
-          li.appendChild(span);
-          
-          ul.appendChild(li);
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          loading.remove();
-          li.classList.add('show');
-          
-          state.addedBulletPoints.add(bulletPointId);
-          debugInfo.updateStatus(`Added Bullet Point: ${text}`);
-        } catch (error) {
-          debugInfo.logError(error);
-        }
-      }
-
-      function analyzeChatMessage(message) {
-        console.log(`Analyzing message: ${message}`);
-        const lowerMessage = message.toLowerCase();
-        let highestScore = state.currentScore;
-        
-        Object.entries(triggers).forEach(([section, patterns]) => {
-          Object.entries(patterns).forEach(([trigger, data]) => {
-            if (lowerMessage.includes(trigger)) {
-              console.log(`Trigger matched: ${trigger}`);
-              addBulletPoint(section, data.text, data.color);
-              highestScore = Math.max(highestScore, data.score);
-            }
-          });
-        });
-        
-        if (highestScore > state.currentScore) {
-          state.currentScore = highestScore;
-          updateRiskMeter(state.currentScore);
-        }
-      }
-
-      // Reset functionality
-      function resetWidget() {
-        console.log('Resetting widget');
-        state.currentScore = 0;
-        state.currentThresholdIndex = 0;
-        state.addedBulletPoints.clear();
-        
-        updateRiskMeter(0);
-        document.querySelectorAll('.bullet-point').forEach(el => el.remove());
-        document.getElementById('denyButton').classList.add('hidden');
-        
-        debugInfo.updateStatus('Widget Reset');
-      }
-
-      // Event listeners
-      client.on('app.registered', function() {
-        debugInfo.updateStatus('App Registered');
-      });
-
-      client.on('app.activated', function() {
-        debugInfo.updateStatus('App Activated');
-      });
-
-      client.on('ticket.conversation.changed', async function() {
-        console.log('Conversation changed event received');
-        try {
-          const data = await client.get('ticket.conversation.comment');
-          const latestComment = data['ticket.conversation.comment'];
-          
-          if (latestComment && latestComment.text) {
-            analyzeChatMessage(latestComment.text);
-          }
-        } catch (error) {
-          debugInfo.logError(error);
-        }
-      });
-
-      document.getElementById('denyButton').addEventListener('click', async function() {
-        console.log('Deny button clicked');
-        try {
-          await client.invoke('ticket.comment.appendText', {
-            text: 'The Customer Support Representative has ended the chat due to detection of fraudulent behavior in this conversation.'
-          });
-          
-          await client.invoke('ticket.update', {
-            status: 'closed'
-          });
-          
-          debugInfo.updateStatus('Claim Denied');
-        } catch (error) {
-          debugInfo.logError(error);
-        }
-      });
-
-      document.getElementById('resetButton').addEventListener('click', resetWidget);
-
-      // Initialize
-      updateRiskMeter(0);
-      console.log('Widget initialization complete');
-
-      // Final load time update
-      document.getElementById('loadTime').textContent = `${Math.round(performance.now() - startTime)}ms`;
-    })();
+    });
   </script>
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <script src="../scripts/app.js"></script>
 </body>
 </html>

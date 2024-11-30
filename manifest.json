@@ -1,9 +1,8 @@
-// manifest.json
 {
-  "name": "TouchStone Demo V1",
+  "name": "Risk Assessment Tool",
   "author": {
-    "name": "Evelyn Tran",
-    "email": "evelyntranbh@gmail.com"
+    "name": "Your Name",
+    "email": "your.email@example.com"
   },
   "defaultLocale": "en",
   "private": true,
@@ -14,16 +13,20 @@
   },
   "version": "1.0.0",
   "frameworkVersion": "2.0",
-  "domainWhitelist": [
-    "cdn.jsdelivr.net",
-    "static.zdassets.com"
-  ],
-  "parameters": [
-    {
-      "name": "debugMode",
-      "type": "checkbox",
-      "required": false,
-      "default": true
+  "parameters": [{
+    "name": "debugMode",
+    "type": "checkbox",
+    "default": true,
+    "label": "Enable Debug Mode"
+  }],
+  "permissions": {
+    "ticket": {
+      "read": true,
+      "write": true
+    },
+    "comments": {
+      "read": true,
+      "write": true
     }
-  ]
+  }
 }

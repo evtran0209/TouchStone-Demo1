@@ -1,0 +1,21 @@
+{
+    "id": "your-env-id",
+    "name": "TouchStone Development",
+    "values": [
+        {
+            "key": "baseUrl",
+            "value": "https://americaneagleoutfittersinchelp.zendesk.com/api/v2",
+            "enabled": true
+        },
+        {
+            "key": "auth",
+            "value": "{{base64 encoded credentials}}",
+            "enabled": true
+        },
+        {
+            "key": "ticketId",
+            "value": "your-test-ticket-id",
+            "enabled": true
+        }
+    ]
+}

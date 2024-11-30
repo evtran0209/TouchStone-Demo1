@@ -4,17 +4,38 @@
   "description": "Version #1 of TouchStone Demo for Zendesk Integration",
   "main": "index.js",
   "scripts": {
-    "start": "zat server",
-    "build": "zat package",
-    "clean": "rm -rf dist/*.zip",
-    "validate": "zat validate"
+    "test": "nyc mocha tests/tests.js --timeout 10000",
+    "coverage": "nyc report --reporter=html",
+    "coverage:check": "nyc check-coverage --lines 80 --functions 80 --branches 70"
   },
-  "author": "Your Name",
+  "author": "Evelyn Tran",
   "license": "ISC",
   "dependencies": {
-    "zendesk_app_framework_sdk": "^2.0.0"
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1"
   },
   "devDependencies": {
-    "zendesk_apps_tools": "^3.8.0"
+    "chai": "^4.3.7",
+    "chai-http": "^4.4.0",
+    "jsdom": "^22.1.0",
+    "mocha": "^10.2.0",
+    "node-fetch": "^2.7.0",
+    "nyc": "^17.1.0"
+  },
+  "nyc": {
+    "exclude": [
+      "tests/**",
+      "coverage/**"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "all": true,
+    "check-coverage": true,
+    "branches": 70,
+    "lines": 80,
+    "functions": 80
   }
 }

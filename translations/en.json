@@ -1,8 +1,44 @@
 {
   "app": {
-    "name": "TouchStone Demo V1",
-    "short_description": "Fraud detection tool for customer support representatives",
-    "long_description": "A tool to detect fraudulent behavior in customer support conversations",
+    "name": "Fraud Detection Widget",
+    "short_description": "Real-time fraud detection for customer support conversations",
+    "long_description": "A tool to detect fraudulent behavior in customer support conversations with dynamic risk scoring and automated analysis",
     "installation_instructions": "Upload the app as a private app in Zendesk"
+  },
+  "widget": {
+    "title": "Risk Summary",
+    "sections": {
+      "identity": "Identity/KYC",
+      "conversation": "Conversation Behavior",
+      "delivery": "Proof of Delivery"
+    },
+    "risk_meter": {
+      "title": "Severe Risk",
+      "score_suffix": "%"
+    },
+    "buttons": {
+      "deny": "Deny Claim"
+    },
+    "debug": {
+      "status": "Status",
+      "ticket_id": "Ticket ID",
+      "current_score": "Current Score",
+      "events_monitored": "Events Monitored",
+      "widget_status": {
+        "initializing": "Initializing...",
+        "loading": "Loading...",
+        "connected": "Connected",
+        "error": "Error"
+      }
+    },
+    "messages": {
+      "deny_confirmation": "The Customer Support Representative has ended the chat due to detection of fraudulent behavior in this conversation."
+    }
+  },
+  "errors": {
+    "initialization": "Failed to initialize widget",
+    "connection": "Failed to connect to Zendesk API",
+    "update": "Failed to update risk score",
+    "message_processing": "Failed to process message"
   }
 }

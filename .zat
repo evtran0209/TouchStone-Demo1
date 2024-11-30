@@ -1,8 +1,4 @@
 {
-  "zat_latest": "3.8.0",
-  "zat_update_check": "2024-01-01",
-  "app_id": "TouchStone Demo #1",
-  "parameters": {
-    "riskThreshold": 85
-  }
+  "zat_latest": "3.9.2",
+  "zat_update_check": "2024-11-25"
 }

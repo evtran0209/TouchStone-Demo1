@@ -1,0 +1,40 @@
+{
+    "info": {
+        "name": "TouchStone Risk Assessment API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Risk Analysis",
+            "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/risk-analysis/{{ticketId}}",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Basic {{auth}}"
+                    }
+                ]
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function() {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Response contains risk analysis data', function() {",
+                            "    const response = pm.response.json();",
+                            "    pm.expect(response.success).to.be.true;",
+                            "    pm.expect(response.data).to.have.property('riskScore');",
+                            "    pm.expect(response.data).to.have.property('triggers');",
+                            "});"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
