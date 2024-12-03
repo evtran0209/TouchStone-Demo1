@@ -17,7 +17,7 @@
     {
       "name": "allowedOrigins",
       "type": "hidden",
-      "default": "*.zendesk.com *.zdassets.com"
+      "default": "*.zendesk.com *.zdassets.com *.zdusercontent.com"
     }
   ],
   "domainWhitelist": [
@@ -25,23 +25,23 @@
     "1087707.apps.zdusercontent.com",
     "*.zendesk.com",
     "*.zdassets.com",
-    "*.zdusercontent.com",
-    "pubsub-shard2-27-3.zendesk.com"
+    "*.zdusercontent.com"
   ],
   "permissions": {
-    "ticket": ["read", "write"],
-    "comment": ["read", "write"],
-    "current_user": ["read"]
+    "support": {
+      "ticket_sidebar": true,
+      "ticket": ["read", "write"],
+      "conversation": ["read"],
+      "comment": ["read", "write"]
+    }
   },
   "cors": true,
-  "developmentMode": true,
   "singleInstall": true,
   "crossOriginWhitelist": [
     "americaneagleoutfittersinchelp.zendesk.com",
     "1087707.apps.zdusercontent.com",
     "*.zendesk.com",
     "*.zdassets.com",
-    "*.zdusercontent.com",
-    "pubsub-shard2-27-3.zendesk.com"
+    "*.zdusercontent.com"
   ]
 }

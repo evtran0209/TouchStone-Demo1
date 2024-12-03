@@ -1,199 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Risk Analysis Widget</title>
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    style-src 'self' 'unsafe-inline' https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    img-src 'self' data: https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    connect-src 'self' wss://*.zendesk.com https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    frame-src 'self' https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    frame-ancestors 'self' https://*.zendesk.com https://*.zdassets.com https://*.zdusercontent.com;
-    worker-src 'self' blob:;
-    child-src 'self' blob:;
-  ">
-  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
-  <script type="text/javascript" src="https://assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js"></script>
-  <style>
-    .widget-container {
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #2f3941;
-    }
-
-    /* Risk Meter Styles */
-    .risk-meter {
-      text-align: center;
-      margin-bottom: 24px;
-      position: relative;
-    }
-
-    #riskMeterContainer {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      margin: 0 auto;
-      background: conic-gradient(#e0e0e0 0%, #e0e0e0 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .meter-inner {
-      width: 120px;
-      height: 120px;
-      background: white;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #currentScore {
-      font-size: 36px;
-      font-weight: bold;
-      margin: 0;
-      line-height: 1;
-    }
-
-    #riskLevel {
-      font-size: 16px;
-      font-weight: 500;
-      margin-top: 4px;
-    }
-
-    /* Risk Sections Styles */
-    .risk-section {
-      margin-bottom: 20px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 12px;
-    }
-
-    .section-header {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #2f3941;
-    }
-
-    .bullet-points {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .bullet-points li {
-      font-size: 13px;
-      padding: 6px 8px;
-      margin: 4px 0;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-    }
-
-    /* Risk Level Styles */
-    .risk-high {
-      background-color: #fff0f0;
-      color: #d42f2f;
-    }
-
-    .risk-medium {
-      background-color: #fff7e6;
-      color: #f5a623;
-    }
-
-    .risk-low {
-      background-color: #f0fff4;
-      color: #2d8a39;
-    }
-
-    .no-triggers {
-      color: #999;
-      font-style: italic;
-    }
-
-    /* Actions Section */
-    .actions {
-      margin-top: 16px;
-    }
-
-    #denyButton {
-      background-color: #d42f2f;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      width: 100%;
-      font-weight: 500;
-      display: none;
-    }
-
-    #denyButton:hover {
-      background-color: #b71c1c;
-    }
-  </style>
+    <meta charset="utf-8">
+    <title>Risk Analysis Widget</title>
+    <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+    <style>
+        .widget-container {
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .risk-section {
+            margin-bottom: 16px;
+        }
+        .bullet-points {
+            list-style: none;
+            padding-left: 0;
+        }
+        .risk-high { color: #ff4444; }
+        .no-triggers { color: #666; }
+    </style>
 </head>
 <body>
-  <div class="widget-container">
-    <!-- Risk Meter -->
-    <div class="risk-meter">
-      <div id="riskMeterContainer">
-        <div class="meter-inner">
-          <div id="currentScore">0</div>
-          <div id="riskLevel">Low</div>
+    <div class="widget-container">
+        <div id="identitySection" class="risk-section">
+            <h3>Identity Risks</h3>
+            <ul class="bullet-points">
+                <li class="no-triggers">No risks detected</li>
+            </ul>
         </div>
-      </div>
     </div>
-
-    <!-- Identity/KYC Section -->
-    <div id="identitySection" class="risk-section">
-      <div class="section-header">Identity/KYC Risks</div>
-      <ul class="bullet-points"></ul>
-    </div>
-
-    <!-- Conversation Behavior Section -->
-    <div id="behaviorSection" class="risk-section">
-      <div class="section-header">Conversation Behavior</div>
-      <ul class="bullet-points"></ul>
-    </div>
-
-    <!-- Proof of Delivery Section -->
-    <div id="deliverySection" class="risk-section">
-      <div class="section-header">Proof of Delivery</div>
-      <ul class="bullet-points"></ul>
-    </div>
-
-    <!-- Actions -->
-    <div class="actions">
-      <button id="denyButton">Deny Refund Claim</button>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="../dist/app.bundle.js"></script>
-  <script>
-    // Suppress source map warnings in development
-    if (window.console && console.warn) {
-        const originalWarn = console.warn;
-        console.warn = (...args) => {
-            if (args[0]?.includes('Source Map')) return;
-            originalWarn.apply(console, args);
-        };
-    }
-
-    // Initialize widget after DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof ZAFClient !== 'undefined') {
-        const client = ZAFClient.init();
-        client.invoke('resize', { width: '100%', height: '500px' });
-      }
-    });
-  </script>
+    <script src="app.bundle.js"></script>
 </body>
 </html>
