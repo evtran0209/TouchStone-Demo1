@@ -1,0 +1,15 @@
+{
+  "zat_latest": "3.9.2",
+  "zat_update_check": "2024-12-02",
+  "subdomain": "americaneagleoutfittersinchelp",
+  "ignored_paths": [
+    "node_modules/**/*",
+    ".git/**/*",
+    "coverage/**/*",
+    "tmp/**/*",
+    ".DS_Store",
+    "*.log",
+    "*.map",
+    "package-lock.json"
+  ]
+}

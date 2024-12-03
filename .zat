@@ -1,4 +1,31 @@
 {
   "zat_latest": "3.9.2",
-  "zat_update_check": "2024-11-25"
+  "zat_update_check": "2024-12-02",
+  "subdomain": "americaneagleoutfittersinchelp",
+  "ignored_paths": [
+    ".git",
+    ".github",
+    "node_modules",
+    "coverage",
+    "tmp",
+    ".DS_Store",
+    "dist/*.map",
+    "*.log",
+    ".env",
+    ".vscode",
+    "*.test.js",
+    "jest.config.js"
+  ]
+}
+    ".git*",
+    ".DS_Store*",
+    "node_modules/**",
+    "tmp/**",
+    "dist/**",
+    "*.zip",
+    ".zat",
+    ".env",
+    "coverage/**",
+    "tests/**"
+  ]
 }

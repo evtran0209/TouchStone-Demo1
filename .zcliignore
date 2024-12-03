@@ -1,0 +1,12 @@
+node_modules/
+node_modules/**/*
+coverage/
+coverage/**/*
+config/
+.git/
+.gitignore
+.npm/
+tests/
+*.test.js
+*.log
+.DS_Store

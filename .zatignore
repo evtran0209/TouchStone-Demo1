@@ -1,0 +1,12 @@
+.git/**/*
+.github/**/*
+node_modules/**/*
+coverage/**/*
+tmp/**/*
+.DS_Store
+dist/*.map
+*.log
+.env
+.vscode/**/*
+*.test.js
+jest.config.js

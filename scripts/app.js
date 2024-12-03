@@ -1,207 +1,287 @@
 (function() {
-  'use strict';
+    'use strict';
 
-  const config = require('../config/config');
-  const ZendeskAPI = require('../api/ticketMonitor');
-
-  const isBrowser = typeof window !== 'undefined';
-  const client = isBrowser ? ZAFClient.init() : null;
-
-  let currentTicketId = null;
-
-  // API Configuration
-  const API_CONFIG = {
-    subdomain: window.location.hostname.split('.')[0],
-    version: 'v2',
-    baseUrl: `https://${window.location.hostname}/api/v2/`
-  };
-
-  // State management
-  const state = {
-    currentScore: 0,
-    scoreThresholds: [23, 36, 54, 68, 85],
-    currentThresholdIndex: 0,
-    addedBulletPoints: new Set(),
-    riskThreshold: 85,
-    initialIdentityChecksAdded: false,
-    lastProcessedMessage: null,
-    processedComments: new Set()
-  };
-
-  // Test conversation simulation
-  const testConversation = [
-    { text: "I don't have it handy", delay: 2000 },
-    { text: "I'm in a rush", delay: 4000 },
-    { text: "That's impossible", delay: 6000 },
-    { text: "I'll file a chargeback", delay: 8000 },
-    { text: "fair credit billing act", delay: 10000 }
-  ];
-
-  // Risk assessment triggers
-  const triggers = {
-    identity: [
-      { phrase: "don't have it handy", text: "Unable to Provide Order Information", color: "text-yellow-500", score: 23 },
-      { phrase: "can't you find it", text: "Avoidance of Order Verification Process Detected: Medium", color: "text-yellow-500", score: 36 }
-    ],
-    conversation: [
-      { phrase: "rush", text: "Urgency Detected: High", color: "text-red-500", score: 36, additionalPoints: [
-          { text: "Story Fabrication: Similar to Past Fraudulent Scripts", color: "text-red-500" }
-        ]
-      },
-      { phrase: "chargeback", text: "Threatening Language: High (Related to Chargebacks)", color: "text-red-500", score: 68, additionalPoints: [
-          { text: "Excessive Knowledge of Chargeback Knowledge consistent with Past Fraudulent Claims", color: "text-red-500" }
-        ]
-      },
-      { phrase: "fair credit billing act", text: "Excessive Knowledge of Chargebacks", color: "text-red-500", score: 85 }
-    ],
-    delivery: [
-      { phrase: "impossible", text: "Package was delivered. Proven by Photo Proof of Delivery", color: "text-yellow-500", score: 54 },
-      { phrase: "nothing came", text: "Did Not Arrive Claims Not Supported by Tracking Evidence", color: "text-red-500", score: 36 }
-    ]
-  };
-
-  // Define all functions before using them
-  function updateRiskScore(score) {
-    try {
-        const scoreElement = document.getElementById('currentScore');
-        const denyButton = document.getElementById('denyButton');
-        
-        if (scoreElement) {
-            scoreElement.textContent = `${score}%`;
-        }
-        
-        if (denyButton) {
-            denyButton.style.display = score >= 85 ? 'block' : 'none';
-        }
-        
-        return score;
-    } catch (error) {
-        console.error('Error updating risk score:', error);
-        return 0;
-    }
-  }
-
-  function addBulletPoint(message, section, className = '') {
-    try {
-        const sectionElement = document.querySelector(`#${section}-section .bullet-points`);
-        if (!sectionElement) return false;
-
-        const li = document.createElement('li');
-        li.textContent = message;
-        li.className = `bullet-point ${className}`;
-        sectionElement.appendChild(li);
-        return true;
-    } catch (error) {
-        console.error('Error adding bullet point:', error);
-        return false;
-    }
-  }
-
-  async function analyzeComment(comment) {
-    try {
-        if (!comment || comment.value == null) {
-            return { riskScore: 0 };
-        }
-
-        // Normalize the text: remove special characters and convert to lowercase
-        const text = comment.value
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '');
-
-        let riskScore = 0;
-
-        if (text.includes('chargeback')) {
-            riskScore = Math.max(riskScore, 85);
-            addBulletPoint('Chargeback Threat Detected', 'conversation', 'high-risk');
-        }
-
-        updateRiskScore(riskScore);
-        return { riskScore };
-    } catch (error) {
-        console.error('Error analyzing comment:', error);
-        return { riskScore: 0 };
-    }
-  }
-
-  async function init() {
-    try {
-        const client = ZAFClient.init();
-        console.log('ZAF Client initialized');
-        
-        const context = await client.context();
-        const ticket = await client.get('ticket');
-        console.log('Current ticket ID:', ticket.ticket.id);
-        
-        // Set up ticket update listener
-        client.on('ticket.updated', async (updateData) => {
-            console.log('Ticket updated:', updateData);
-            await handleTicketUpdate(updateData);
-        });
-        
-        return { client, ticket };
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        return null;
-    }
-  }
-
-  async function handleTicketUpdate(updateData) {
-    try {
-        if (updateData && updateData.ticket) {
-            // Process the ticket update
-            const ticketId = updateData.ticket.id;
-            const status = updateData.ticket.status;
-            console.log(`Processing update for ticket ${ticketId}, new status: ${status}`);
-            
-            // Add any specific update handling logic here
-            if (status === 'updated') {
-                await analyzeComment({ value: 'Ticket status updated' });
+    // Initialize variables at the top
+    let client = null;
+    let isInitialized = false;
+    let isDebugMode = true; // Enable detailed logging
+    
+    // Debug logging function
+    function debugLog(message, data = null) {
+        if (isDebugMode) {
+            if (data) {
+                console.log(`[Risk Widget Debug] ${message}:`, data);
+            } else {
+                console.log(`[Risk Widget Debug] ${message}`);
             }
         }
-    } catch (error) {
-        console.error('Error handling ticket update:', error);
     }
-  }
 
-  async function testWidget() {
-    try {
-        await init();
-        console.log('Widget initialized successfully');
+    const triggers = {
+        identity: [
+            { phrase: "chargeback", text: "Chargeback Threat Detected", score: 85 },
+            { phrase: "fair credit billing act", text: "FCBA Reference Detected", score: 85 }
+        ],
+        conversation: [
+            { phrase: "chargeback", text: "Chargeback Language Used", score: 68 }
+        ],
+        delivery: [
+            { phrase: "nothing came", text: "Delivery Dispute", score: 36 },
+            { phrase: "impossible", text: "Delivery Challenge", score: 54 }
+        ]
+    };
+
+    async function initializeWidget() {
+        debugLog('Starting widget initialization');
+        if (isInitialized) {
+            debugLog('Widget already initialized');
+            return;
+        }
         
-        const testComment = {
-            value: "I'll file a chargeback if this isn't resolved immediately"
+        try {
+            debugLog('Creating ZAF Client');
+            client = await ZAFClient.init();
+            
+            // Verify client initialization
+            if (!client) {
+                throw new Error('ZAF Client failed to initialize');
+            }
+            
+            debugLog('ZAF Client created successfully');
+            isInitialized = true;
+            
+            // Set up CORS headers and resize
+            debugLog('Setting up widget display');
+            await client.invoke('resize', { width: '100%', height: '500px' });
+            
+            // Set up ticket update listener
+            debugLog('Setting up ticket update listener');
+            client.on('ticket.conversation.changed', async (data) => {
+                debugLog('Ticket conversation changed event received', data);
+                await handleTicketUpdate(data);
+            });
+
+            // Perform initial analysis
+            debugLog('Performing initial ticket analysis');
+            const ticket = await client.get('ticket');
+            debugLog('Initial ticket data received', ticket);
+            
+            if (ticket && ticket.ticket) {
+                await updateRiskAnalysis();
+            } else {
+                debugLog('No initial ticket data available');
+            }
+            
+        } catch (error) {
+            console.error('[Risk Widget Error] Initialization failed:', error);
+            isInitialized = false;
+        }
+    }
+
+    async function handleTicketUpdate(event) {
+        debugLog('Handling ticket update', event);
+        if (!isInitialized) {
+            console.error('[Risk Widget Error] Cannot handle update - widget not initialized');
+            return;
+        }
+
+        try {
+            await updateRiskAnalysis();
+        } catch (error) {
+            console.error('[Risk Widget Error] Failed to handle ticket update:', error);
+        }
+    }
+
+    async function updateRiskAnalysis() {
+        debugLog('Starting risk analysis update');
+        if (!isInitialized) {
+            console.error('[Risk Widget Error] Cannot update analysis - widget not initialized');
+            return;
+        }
+
+        try {
+            const ticket = await client.get('ticket');
+            debugLog('Retrieved ticket data for analysis', ticket);
+
+            if (!ticket || !ticket.ticket) {
+                throw new Error('No ticket data available');
+            }
+
+            const comments = ticket.ticket.comments || [];
+            const latestComment = comments[comments.length - 1];
+            
+            if (latestComment) {
+                debugLog('Analyzing latest comment', latestComment);
+                const analysis = analyzeComment(latestComment.text);
+                debugLog('Analysis results', analysis);
+                await updateUI(analysis);
+            } else {
+                debugLog('No comments found in ticket');
+            }
+        } catch (error) {
+            console.error('[Risk Widget Error] Risk analysis failed:', error);
+        }
+    }
+
+    function analyzeComment(comment) {
+        debugLog('Starting comment analysis', comment);
+        const text = comment.toLowerCase();
+        const analysis = {
+            riskScore: 0,
+            identityRisks: [],
+            behaviorRisks: [],
+            deliveryRisks: []
         };
-        console.log('Analyzing comment:', testComment);
-        
-        await analyzeComment(testComment);
-        console.log('Widget test completed successfully');
-    } catch (error) {
-        console.error('Widget test failed:', error);
+
+        // Check each trigger category
+        Object.entries(triggers).forEach(([category, triggerList]) => {
+            debugLog(`Checking ${category} triggers`);
+            triggerList.forEach(trigger => {
+                if (text.includes(trigger.phrase.toLowerCase())) {
+                    debugLog(`Found matching trigger`, trigger);
+                    const risk = {
+                        message: trigger.text,
+                        level: trigger.score >= 85 ? 'high' : trigger.score >= 50 ? 'medium' : 'low',
+                        score: trigger.score
+                    };
+
+                    switch(category) {
+                        case 'identity':
+                            analysis.identityRisks.push(risk);
+                            break;
+                        case 'conversation':
+                            analysis.behaviorRisks.push(risk);
+                            break;
+                        case 'delivery':
+                            analysis.deliveryRisks.push(risk);
+                            break;
+                    }
+
+                    analysis.riskScore = Math.max(analysis.riskScore, trigger.score);
+                }
+            });
+        });
+
+        debugLog('Analysis complete', analysis);
+        return analysis;
     }
-  }
 
-  // Export all functions
-  const appExports = {
-    init,
-    updateRiskScore,
-    addBulletPoint,
-    analyzeComment,
-    testWidget,
-    handleTicketUpdate
-  };
+    async function updateUI(analysis) {
+        debugLog('Updating UI with analysis results', analysis);
+        try {
+            // Update risk meter
+            updateRiskMeter(analysis.riskScore);
+            
+            // Update risk sections
+            updateBulletPoints('identitySection', analysis.identityRisks);
+            updateBulletPoints('behaviorSection', analysis.behaviorRisks);
+            updateBulletPoints('deliverySection', analysis.deliveryRisks);
 
-  // Handle both browser and Node.js environments
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = appExports;
-  } else if (typeof window !== 'undefined') {
-    window.app = appExports;
-  }
+            // Update deny button visibility
+            const denyButton = document.getElementById('denyButton');
+            if (denyButton) {
+                const shouldShow = analysis.riskScore >= 85;
+                debugLog(`Setting deny button visibility to ${shouldShow}`);
+                denyButton.style.display = shouldShow ? 'block' : 'none';
+            }
 
-  // Initialize if in browser environment
-  if (typeof window !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', init);
-  }
+            debugLog('UI update complete');
+        } catch (error) {
+            console.error('[Risk Widget Error] UI update failed:', error);
+        }
+    }
 
+    function updateRiskMeter(score) {
+        debugLog('Updating risk meter with score', score);
+        const meterContainer = document.getElementById('riskMeterContainer');
+        const scoreElement = document.getElementById('currentScore');
+        const riskLevel = document.getElementById('riskLevel');
+        
+        if (scoreElement) scoreElement.textContent = score;
+        
+        let color, levelText;
+        if (score >= 85) {
+            color = '#ff4444';
+            levelText = 'High';
+        } else if (score >= 50) {
+            color = '#ffbb33';
+            levelText = 'Medium';
+        } else {
+            color = '#00C851';
+            levelText = 'Low';
+        }
+        
+        if (meterContainer) {
+            meterContainer.style.background = `conic-gradient(${color} ${score}%, #e0e0e0 ${score}%)`;
+        }
+        if (riskLevel) {
+            riskLevel.textContent = levelText;
+            riskLevel.style.color = color;
+        }
+        debugLog('Risk meter update complete');
+    }
+
+    function updateBulletPoints(sectionId, risks) {
+        debugLog(`Updating bullet points for ${sectionId}`, risks);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            debugLog(`Section ${sectionId} not found`);
+            return;
+        }
+
+        const bulletList = section.querySelector('.bullet-points');
+        if (!bulletList) {
+            debugLog('Bullet list not found');
+            return;
+        }
+
+        bulletList.innerHTML = '';
+
+        if (risks.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = 'No risks detected';
+            li.className = 'no-triggers';
+            bulletList.appendChild(li);
+        } else {
+            risks.forEach(risk => {
+                const li = document.createElement('li');
+                li.textContent = risk.message;
+                li.className = `risk-${risk.level.toLowerCase()}`;
+                bulletList.appendChild(li);
+            });
+        }
+        debugLog(`Bullet points update complete for ${sectionId}`);
+    }
+
+    // Initialize when DOM is ready
+    debugLog('Setting up DOM initialization');
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeWidget);
+    } else {
+        initializeWidget();
+    }
+
+    // Export test function
+    window.testRiskAnalysis = async (phrase) => {
+        debugLog('Running test analysis', phrase);
+        if (!isInitialized) {
+            console.error('[Risk Widget Error] Cannot test - widget not initialized');
+            return null;
+        }
+        try {
+            const analysis = analyzeComment(phrase);
+            await updateUI(analysis);
+            debugLog('Test analysis complete', analysis);
+            return analysis;
+        } catch (error) {
+            console.error('[Risk Widget Error] Test failed:', error);
+            return null;
+        }
+    };
+
+    // Export debug toggle function
+    window.toggleDebug = () => {
+        isDebugMode = !isDebugMode;
+        debugLog(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
+    };
 })();
